@@ -1,1 +1,62 @@
-<p>home works!</p>
+<div class="container">
+  <h1 class="title">Gerador de Legenda para Imagem</h1>
+
+  <!-- Input de upload da imagem -->
+  <mat-card class="upload-card">
+    <mat-card-header>
+      <mat-card-title>Faça upload de uma imagem</mat-card-title>
+      <mat-card-subtitle
+        >Carregue uma imagem para gerar uma legenda
+        automaticamente.</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      <div>
+        <label for="imageUpload" class="file-upload-label">
+          <mat-icon aria-hidden="true">upload</mat-icon>
+          Escolher imagem
+        </label>
+        <input
+          id="imageUpload"
+          type="file"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          class="file-input"
+          aria-label="Escolher arquivo de imagem"
+        />
+      </div>
+    </mat-card-content>
+    <mat-card-actions>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="generateCaption()"
+        [disabled]="!selectedFile"
+        aria-label="Gerar legenda para a imagem carregada"
+      >
+        Gerar Legenda
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  @if (imagePreview) {
+  <mat-card class="result-card">
+    <mat-card-header>
+      <mat-card-title>Resultado</mat-card-title>
+      <mat-card-subtitle
+        >Veja a imagem e a legenda gerada abaixo.</mat-card-subtitle
+      >
+    </mat-card-header>
+    <mat-card-content>
+      <div class="image-container">
+        <img [src]="imagePreview" alt="Imagem carregada pelo usuário" />
+        @if (caption) {
+        <p class="caption" aria-live="polite">
+          <strong>Legenda:</strong> {{ caption }}
+        </p>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+  }
+</div>

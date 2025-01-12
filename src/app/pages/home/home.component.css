@@ -1,0 +1,53 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.upload-card,
+.result-card {
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.file-upload-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  background-color: #1976d2;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.file-upload-label mat-icon {
+  margin-right: 8px;
+}
+
+.file-input {
+  display: none;
+}
+
+.image-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.image-container img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.caption {
+  font-size: 18px;
+  color: #555;
+}

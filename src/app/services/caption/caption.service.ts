@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import * as tf from '@tensorflow/tfjs';
+import { Observable } from 'rxjs';
 
 const MODEL_FILE = '/assets/model/model.json';
 
@@ -8,74 +8,100 @@ const MODEL_FILE = '/assets/model/model.json';
 })
 export class CaptionService {
   private _selectedFile: File | null = null;
-  private _model: tf.LayersModel | null = null;
+  private _worker: Worker | null = null;
 
-  constructor() {}
-
-  public async loadModel(): Promise<void> {
-    this._model = await tf.loadLayersModel(MODEL_FILE);
-  }
-
-  public async generateCaption(): Promise<string> {
-    if (!this._selectedFile || !this._model) {
-      return '';
-    }
-
-    const imgElement = await this._fileToImageElement(this._selectedFile);
-    const preprocessedImage = this._preProcessImage(imgElement);
-    const predictions = this._model.predict(preprocessedImage) as tf.Tensor;
-    const captionTokens = await predictions.array();
-
-    return this._tokensToCaption(captionTokens);
-  }
-
-  private _fileToImageElement(file: File): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.src = reader.result as string;
-        img.onload = () => resolve(img);
-        img.onerror = (error) => reject(error);
-      };
-      reader.readAsDataURL(file);
+  constructor() {
+    this._worker = new Worker(new URL('./caption.worker', import.meta.url), {
+      type: 'module',
     });
   }
 
-  private _preProcessImage(imgElement: HTMLImageElement): tf.Tensor {
-    const tensor = tf.browser
-      .fromPixels(imgElement)
-      .resizeNearestNeighbor([224, 224])
-      .toFloat()
-      .div(127.5)
-      .sub(1)
-      .expandDims();
-    return tensor;
+  public loadModel(file: string = MODEL_FILE): void {
+    if (this._worker) {
+      this._worker.postMessage({ type: 'LOAD_MODEL', payload: file });
+      this._worker.onmessage = (event) => {
+        const { type, message, error } = event.data;
+
+        if (type === 'MODEL_LOADED') {
+          console.log(message);
+        }
+
+        if (type === 'MODEL_LOADED_ERROR') {
+          console.log(error);
+        }
+      };
+    }
   }
 
-  private _tokensToCaption(
-    tokens:
-      | number
-      | number[]
-      | number[][]
-      | number[][][]
-      | number[][][][]
-      | number[][][][][]
-      | number[][][][][][]
-  ): string {
-    const vocabulary = ['<start>', 'a', 'cat', 'on', 'the', 'mat', '<end>'];
-    const flattenTokens = (data: any): number[] => {
-      if (Array.isArray(data)) {
-        return data.flatMap(flattenTokens);
-      }
-      return [data];
-    };
-    const flatTokens = flattenTokens(tokens);
-    const caption = flatTokens
-      .map((token) => vocabulary[token] || '')
-      .filter((word) => word && word !== '<start>' && word !== '<end>')
-      .join(' ');
+  public generateCaption(): Observable<string> {
+    if (!this._selectedFile || !this._worker) {
+      return new Observable((observer) => {
+        observer.next('');
+        observer.complete();
+      });
+    }
 
-    return caption;
+    return new Observable((observer) => {
+      this._fileToImageElement(this._selectedFile!).subscribe({
+        next: (imgElement) => {
+          const canvas = document.createElement('canvas');
+
+          canvas.width = imgElement.width;
+          canvas.height = imgElement.height;
+
+          const context = canvas.getContext('2d');
+
+          context?.drawImage(imgElement, 0, 0);
+
+          const imgData = context?.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          this._worker!.postMessage({
+            type: 'GENERATE_CAPTION',
+            payload: imgData,
+          });
+          this._worker!.onmessage = (event) => {
+            const { type, caption, error } = event.data;
+
+            if (type === 'CAPTION_GENERATED') {
+              observer.next(caption);
+              observer.complete();
+            } else if (type === 'CAPTION_GENERATED_ERROR') {
+              observer.error(error);
+            }
+          };
+        },
+        error: (err) => {
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  private _fileToImageElement(file: File): Observable<HTMLImageElement> {
+    return new Observable((observer) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const img = new Image();
+
+        img.src = reader.result as string;
+        img.onload = () => {
+          observer.next(img);
+          observer.complete();
+        };
+        img.onerror = (error) => {
+          observer.error(error);
+        };
+      };
+      reader.onerror = (error) => {
+        observer.error(error);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }

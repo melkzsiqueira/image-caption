@@ -36,7 +36,7 @@ export class HomeComponent implements OnInit {
 
   public generateCaption(): void {
     if (this.selectedFile) {
-      this.captionService.generateCaption().subscribe({
+      this.captionService.generateCaption(this.selectedFile).subscribe({
         next: (caption) => (this.caption = caption),
         error: (err) => console.error(err),
       });

@@ -1,17 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-const MODEL_FILE = '/assets/model/model.json';
+const MODEL_FILE = 'model.json';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CaptionService {
-  private _selectedFile: File | null = null;
   private _worker: Worker | null = null;
 
   constructor() {
-    this._worker = new Worker(new URL('./caption.worker', import.meta.url), {
+    this._worker = new Worker(new URL('../../workers/caption/caption.worker', import.meta.url), {
       type: 'module',
     });
   }
@@ -27,14 +26,14 @@ export class CaptionService {
         }
 
         if (type === 'MODEL_LOADED_ERROR') {
-          console.log(error);
+          console.error(error);
         }
       };
     }
   }
 
-  public generateCaption(): Observable<string> {
-    if (!this._selectedFile || !this._worker) {
+  public generateCaption(selectedFile: File): Observable<string> {
+    if (!selectedFile || !this._worker) {
       return new Observable((observer) => {
         observer.next('');
         observer.complete();
@@ -42,7 +41,7 @@ export class CaptionService {
     }
 
     return new Observable((observer) => {
-      this._fileToImageElement(this._selectedFile!).subscribe({
+      this._fileToImageElement(selectedFile).subscribe({
         next: (imgElement) => {
           const canvas = document.createElement('canvas');
 
